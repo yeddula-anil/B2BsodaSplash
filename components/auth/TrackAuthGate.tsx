@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import TrackOrderModal from "../track/TrackOrderModal";
 import CustomerLoginForm from "./CustomerLoginForm";
 
@@ -70,7 +70,13 @@ const STAGES = [
    COMPONENT
 ========================================================= */
 
-export default function TrackAuthGate() {
+type TrackAuthGateProps = {
+  fallback?: ReactNode;
+};
+
+export default function TrackAuthGate({
+  fallback = <CustomerLoginForm />,
+}: TrackAuthGateProps) {
   const [email, setEmail] = useState<string | null>(null);
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -223,9 +229,7 @@ export default function TrackAuthGate() {
   ======================================================= */
 
   if (!authenticated) {
-    return (
-      <CustomerLoginForm />
-    );
+    return fallback;
   }
 
   /* =======================================================
@@ -379,9 +383,6 @@ export default function TrackAuthGate() {
   return (
     <>
       <div className="customer-track-container">
-        {/* =================================================
-            HEADER
-        ================================================= */}
 
         <div className="customer-track-header">
           <div>
@@ -391,7 +392,6 @@ export default function TrackAuthGate() {
 
             <p>
               Orders associated with{" "}
-
               <strong>
                 {email}
               </strong>
@@ -399,14 +399,8 @@ export default function TrackAuthGate() {
           </div>
         </div>
 
-        {/* =================================================
-            ORDER TABLE
-        ================================================= */}
-
         <div className="customer-orders-wrapper">
           <div className="customer-orders-table">
-
-            {/* HEADER */}
 
             <div className="customer-order-row customer-order-header">
               <div>
@@ -434,8 +428,6 @@ export default function TrackAuthGate() {
               </div>
             </div>
 
-            {/* ORDERS */}
-
             {orders.map(
               (order) => {
                 const status =
@@ -452,7 +444,6 @@ export default function TrackAuthGate() {
                     key={order.id}
                     className="customer-order-row"
                   >
-                    {/* QUOTE */}
 
                     <div className="order-quote">
                       <strong>
@@ -460,21 +451,15 @@ export default function TrackAuthGate() {
                       </strong>
                     </div>
 
-                    {/* CUSTOMER */}
-
                     <div>
                       {order.customerName || "-"}
                     </div>
-
-                    {/* BUSINESS */}
 
                     <div>
                       {order.businessName ||
                         order.businessType ||
                         "-"}
                     </div>
-
-                    {/* STATUS */}
 
                     <div>
                       <span
@@ -487,8 +472,6 @@ export default function TrackAuthGate() {
                         {formatStatus(status)}
                       </span>
                     </div>
-
-                    {/* TOTAL */}
 
                     <div className="order-total-column">
                       {showTotal &&
@@ -505,8 +488,6 @@ export default function TrackAuthGate() {
                       )}
                     </div>
 
-                    {/* ACTION */}
-
                     <div>
                       <button
                         type="button"
@@ -518,6 +499,7 @@ export default function TrackAuthGate() {
                         Track
                       </button>
                     </div>
+
                   </div>
                 );
               }
@@ -526,10 +508,6 @@ export default function TrackAuthGate() {
           </div>
         </div>
       </div>
-
-      {/* ===================================================
-          MODAL
-      =================================================== */}
 
       {selectedOrder && (
         <TrackOrderModal
@@ -540,12 +518,7 @@ export default function TrackAuthGate() {
         />
       )}
 
-      {/* ===================================================
-          TRACK PAGE STYLES
-      =================================================== */}
-
       <style jsx global>{`
-
         .tracking-page {
           width: 100%;
           min-height: calc(100vh - 80px);
@@ -713,10 +686,6 @@ export default function TrackAuthGate() {
           border-color: #2d7591;
           transform: translateY(-1px);
         }
-
-        /* =================================================
-           NO ORDERS
-        ================================================= */
 
         .customer-no-orders {
           width: 100%;
@@ -888,7 +857,6 @@ export default function TrackAuthGate() {
             font-size: 24px;
           }
         }
-
       `}</style>
     </>
   );
