@@ -2,6 +2,7 @@
 const nextConfig = {
   compress: true,
   images: { formats: ["image/avif", "image/webp"] },
+
   async headers() {
     return [
       {

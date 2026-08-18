@@ -4,7 +4,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Edit Order",
-  description: "Review and edit your B2B wholesale order request details.",
+  description:
+    "Review and edit your B2B wholesale order request details.",
   alternates: {
     canonical: "/orders",
   },
@@ -14,7 +15,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function OrderPage({ params }: { params: { quoteNumber: string } }) {
+type OrderPageProps = {
+  params: Promise<{
+    quoteNumber: string;
+  }>;
+};
+
+export default async function OrderPage({
+  params,
+}: OrderPageProps) {
+  const { quoteNumber } = await params;
+
   return (
     <main className="portal-page">
       <header className="portal-nav">
@@ -27,10 +38,16 @@ export default function OrderPage({ params }: { params: { quoteNumber: string } 
             priority
           />
         </a>
-        <a href="/admin">Dashboard</a>
+
+        <a href="/admin">
+          Dashboard
+        </a>
       </header>
+
       <section className="quote-page-section">
-        <OrderEditor quoteNumber={params.quoteNumber} />
+        <OrderEditor
+          quoteNumber={quoteNumber}
+        />
       </section>
     </main>
   );

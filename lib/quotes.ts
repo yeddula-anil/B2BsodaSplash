@@ -13,6 +13,8 @@ export type QuoteRequestInput = {
   businessType: string;
   referralSource: string;
   referralName?: string;
+  /** The selected BD profile. Kept separately from the display name so assignment is unambiguous. */
+  referralBdId?: string;
   note?: string;
   items: QuoteItemInput[];
 };

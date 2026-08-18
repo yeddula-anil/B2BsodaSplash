@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           "/admin",
           "/bd",
-          "/login",
+          "/staff-login",
           "/orders",
           "/api"
         ],

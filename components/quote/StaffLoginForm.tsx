@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase";
 
 export default function StaffLoginForm() {
   const [email, setEmail] = useState("");
@@ -14,24 +13,59 @@ export default function StaffLoginForm() {
     setMessage("");
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      const authApiBase = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || "http://localhost:8080/api";
+      const response = await fetch(
+        `${authApiBase}/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role,is_active")
-        .eq("id", data.user.id)
-        .single();
+      const data = await response.json();
 
-      if (!profile?.is_active) {
-        await supabase.auth.signOut();
-        throw new Error("This staff account is inactive.");
+      if (!response.ok) {
+        throw new Error(
+          data.message || data.error || "Invalid email or password."
+        );
       }
 
-      window.location.href = profile.role === "admin" ? "/admin" : "/bd";
+      if (!data.token) {
+        throw new Error("Authentication token was not returned.");
+      }
+
+      const role = data.role?.toUpperCase();
+
+      if (role !== "ADMIN" && role !== "BD") {
+        throw new Error("You do not have staff access.");
+      }
+
+      localStorage.setItem("authToken", data.token);
+
+      localStorage.setItem(
+        "staff",
+        JSON.stringify({
+          id: data.id,
+          username: data.username,
+          email: data.email,
+          role,
+        })
+      );
+
+      window.location.href = role === "ADMIN" ? "/admin" : "/bd";
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to sign in.");
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to sign in."
+      );
+    } finally {
       setLoading(false);
     }
   }
@@ -41,10 +75,42 @@ export default function StaffLoginForm() {
       <span>STAFF ACCESS</span>
       <h1>Sign in.</h1>
       <p>Admin and business development accounts only.</p>
-      <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
-      <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>
+
+      <label>
+        Email
+        <input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          disabled={loading}
+        />
+      </label>
+
+      <label>
+        Password
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          disabled={loading}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              login();
+            }
+          }}
+        />
+      </label>
+
       {message && <p className="form-message">{message}</p>}
-      <button type="button" className="button primary" disabled={loading} onClick={login}>{loading ? "Signing in..." : "Sign in"}</button>
+
+      <button
+        type="button"
+        className="button primary"
+        disabled={loading}
+        onClick={login}
+      >
+        {loading ? "Signing in..." : "Sign in"}
+      </button>
     </div>
   );
 }

@@ -16,8 +16,9 @@ const FLAVOUR_EMOJI: Record<string, string> = {
   jeera: "🌿",
 };
 
-function getFlavourEmoji(id: string, name: string): string {
-  const key = id.toLowerCase().replace(/\s+/g, "-");
+function getFlavourEmoji(id: string | number, name: string, emoji?: string | null): string {
+  if (emoji && emoji.trim()) return emoji.trim();
+  const key = String(id).toLowerCase().replace(/\s+/g, "-");
   if (FLAVOUR_EMOJI[key]) return FLAVOUR_EMOJI[key];
   const nameLower = name.toLowerCase();
   for (const [k, v] of Object.entries(FLAVOUR_EMOJI)) {
@@ -76,12 +77,31 @@ export default function FlavourReveal({ initialProducts }: { initialProducts?: P
     }
 
     setLoading(true);
-    fetch("/api/products")
+    const productApiBase = process.env.NEXT_PUBLIC_PRODUCT_SERVICE_URL || "http://localhost:8080/api";
+    fetch(`${productApiBase}/products`)
       .then((r) => r.json())
       .then((d) => {
-        if (d.products?.length) {
-          setProducts(d.products);
-          setActiveProductId(d.products[0].id);
+        const rawProducts = Array.isArray(d) ? d : d.products || d.data || [];
+        if (rawProducts.length) {
+          const normalised: PublicProduct[] = rawProducts.map((p: any) => ({
+            id: String(p.id),
+            name: p.name,
+            description: p.description || null,
+            image_url: p.imageUrl || p.image_url || null,
+            display_order: p.displayOrder || 1,
+            flavours: (p.flavours || []).map((f: any) => ({
+              id: String(f.id),
+              product_id: String(p.id),
+              name: f.name,
+              note: f.note || "",
+              price_per_case: Number(f.pricePerCase || f.price_per_case || 0),
+              display_order: f.displayOrder || 1,
+              color: f.color || "#2e6fb8",
+              emoji: f.emoji || null
+            }))
+          }));
+          setProducts(normalised);
+          setActiveProductId(String(normalised[0].id));
         }
       })
       .catch(() => undefined)
@@ -152,7 +172,7 @@ export default function FlavourReveal({ initialProducts }: { initialProducts?: P
                 <div className="glass-card__accent" />
                 {/* Fruit icon */}
                 <div className="glass-card__icon" aria-hidden="true">
-                  {getFlavourEmoji(flavour.id, flavour.name)}
+                  {getFlavourEmoji(flavour.id, flavour.name, flavour.emoji)}
                 </div>
                 {/* Name + tasting note */}
                 <div className="glass-card__body">

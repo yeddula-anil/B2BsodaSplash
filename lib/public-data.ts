@@ -2,6 +2,9 @@ import { unstable_cache } from "next/cache";
 import { createSupabaseAdminClient, hasSupabaseAdminEnv } from "./supabase";
 import { defaultFlavours, defaultProducts, type PublicFlavour, type PublicProduct } from "./flavours";
 
+const PRODUCT_SERVICE = process.env.PRODUCT_SERVICE_URL || process.env.NEXT_PUBLIC_PRODUCT_SERVICE_URL;
+const AUTH_SERVICE = process.env.AUTH_SERVICE_URL || process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;
+
 type ProductRow = {
   id: string;
   name: string;
@@ -16,6 +19,37 @@ type TeamMember = {
 };
 
 async function loadCatalogFromSupabase() {
+  // If a product microservice is configured, prefer it
+  if (PRODUCT_SERVICE) {
+    try {
+      const res = await fetch(`${PRODUCT_SERVICE.replace(/\/$/, "")}/products`);
+      if (!res.ok) throw new Error("Product service returned error");
+      const data = await res.json();
+      // Expecting data.products or data
+      const products = data.products ?? data;
+      if (!Array.isArray(products) || products.length === 0) return [] as PublicProduct[];
+      // Normalize to PublicProduct shape if necessary
+      return products.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description ?? null,
+        image_url: p.image_url ?? p.imageUrl ?? null,
+        display_order: p.display_order ?? p.displayOrder ?? 0,
+        flavours: (p.flavours ?? p.items ?? []).map((f: any) => ({
+          id: f.id,
+          product_id: f.product_id ?? p.id,
+          name: f.name,
+          note: f.note ?? "",
+          price_per_case: f.price_per_case ?? f.pricePerCase ?? 0,
+          display_order: f.display_order ?? f.displayOrder ?? 0,
+          color: f.color ?? "#2e6fb8"
+        }))
+      } as PublicProduct));
+    } catch {
+      // fallback to supabase path below
+    }
+  }
+
   const supabase = createSupabaseAdminClient();
 
   const { data: products, error: productError } = await supabase
@@ -66,10 +100,6 @@ async function loadCatalogFromSupabase() {
 }
 
 export async function loadPublicProducts() {
-  if (!hasSupabaseAdminEnv) {
-    return defaultProducts;
-  }
-
   try {
     const catalog = await getCachedPublicProducts();
     return catalog.length ? catalog : defaultProducts;
@@ -84,8 +114,20 @@ export async function loadPublicFlavours() {
 }
 
 export async function loadPublicTeam() {
-  if (!hasSupabaseAdminEnv) {
-    return [] as TeamMember[];
+  if (AUTH_SERVICE) {
+    try {
+      const res = await fetch(`${AUTH_SERVICE.replace(/\/$/, "")}/auth/users/bd`);
+      if (!res.ok) throw new Error("Team service error");
+      const data = await res.json();
+      const team = Array.isArray(data) ? data : data.data ?? [];
+      return team.map((member: any) => ({
+        id: String(member.id),
+        name: member.username || member.name || member.email,
+        email: member.email
+      }));
+    } catch {
+      // fallback to supabase
+    }
   }
 
   try {

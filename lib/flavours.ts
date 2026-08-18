@@ -6,6 +6,7 @@ export type PublicFlavour = {
   price_per_case: number;
   display_order: number;
   color: string;
+  emoji?: string | null;
 };
 
 export type PublicProduct = {

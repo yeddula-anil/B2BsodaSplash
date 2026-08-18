@@ -1,134 +1,122 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatINR } from "@/lib/flavours";
-import { orderStages, stageLabels } from "@/lib/config";
 
-type TrackedQuote = {
-  quote_number: string;
-  customer_name: string;
-  business_name?: string;
-  status: keyof typeof stageLabels;
-  statusLabel: string;
-  subtotal: number;
-  discount_amount: number;
-  tax_amount: number;
-  additional_charges: number;
-  total: number;
-  payment_status?: string;
-  latest_invoice_number?: string | null;
-  invoice_version?: number;
-  quote_items: Array<{ flavour_name: string; quantity: number; price_per_case: number; line_total: number }>;
-  quote_status_events: Array<{ to_status: keyof typeof stageLabels; created_at: string; note?: string }>;
+type CustomerSession = { id: string; name?: string; email: string; token?: string };
+type OrderItem = { id: number; productName: string; itemName: string; quantity: number; amount: number };
+type Order = {
+  id: number;
+  name: string;
+  businessName?: string;
+  actualAmount: number;
+  finalAmount?: number | null;
+  orderStatus: "NEGOTIATION" | "REJECTED" | "ACCEPTED";
+  orderItems: OrderItem[];
+  createdAt: string;
 };
 
-export default function TrackingForm({
-  initialQuote = "",
-  initialEmail = ""
-}: {
-  initialQuote?: string;
-  initialEmail?: string;
-}) {
-  const [quoteNumber, setQuoteNumber] = useState(initialQuote);
-  const [email, setEmail] = useState(initialEmail);
-  const [code, setCode] = useState("");
-  const [codeSent, setCodeSent] = useState(false);
+const stages = ["ORDER_PLACED", "NEGOTIATION", "REJECTED", "ACCEPTED"] as const;
+const stageLabels: Record<(typeof stages)[number], string> = {
+  ORDER_PLACED: "Order placed",
+  NEGOTIATION: "Negotiation",
+  REJECTED: "Rejected",
+  ACCEPTED: "Accepted"
+};
+
+function getSession(): CustomerSession | null {
+  try {
+    const value = window.localStorage.getItem("customer_user");
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
+}
+
+export default function TrackingForm() {
+  const [session, setSession] = useState<CustomerSession | null>(null);
+  const [orders, setOrders] = useState<Order[] | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [message, setMessage] = useState("");
-  const [quote, setQuote] = useState<TrackedQuote | null>(null);
 
-  async function requestCode() {
-    setMessage("");
-    const response = await fetch("/api/track/request-code", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quoteNumber, email })
-    });
-    const data = await response.json();
-    if (!response.ok) return setMessage(data.error || "Unable to send code.");
-    setCodeSent(true);
-    setMessage(data.devCode ? `Development code: ${data.devCode}` : "Check your email for the verification code.");
-  }
+  useEffect(() => {
+    const currentSession = getSession();
+    setSession(currentSession);
+    if (!currentSession?.email) return;
 
-  async function verifyCode() {
-    setMessage("");
-    const response = await fetch("/api/track/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quoteNumber, email, code })
-    });
-    const data = await response.json();
-    if (!response.ok) return setMessage(data.error || "Unable to verify code.");
-    setQuote(data.quote);
-  }
+    const ordersApiBase = process.env.NEXT_PUBLIC_ORDER_SERVICE_URL || "http://localhost:8080/api";
+    const email = currentSession.email;
 
-  if (quote) {
-    const completed = new Set(quote.quote_status_events.map((event) => event.to_status));
+    fetch(`${ordersApiBase}/orders/by-email?email=${encodeURIComponent(email)}`, {
+      headers: currentSession.token ? { Authorization: `Bearer ${currentSession.token}` } : {}
+    })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || result.message || "Unable to load your orders.");
+        const list = Array.isArray(result) ? result : result.data || [];
+        return list.map((o: any) => ({
+          id: String(o.id || o.quoteNumber),
+          name: o.customerName || currentSession.name || "Customer",
+          businessName: o.businessName,
+          actualAmount: Number(o.subtotal || o.total || 0),
+          finalAmount: Number(o.total || 0),
+          orderStatus: (o.status || "ACCEPTED").toUpperCase() === "DELIVERED" ? "ACCEPTED" : (o.status || "ACCEPTED").toUpperCase() === "CANCELLED" ? "REJECTED" : "NEGOTIATION",
+          orderItems: (o.quoteItems || []).map((item: any) => ({
+            id: item.id,
+            productName: "SodaSplash",
+            itemName: item.flavourName || "Flavour",
+            quantity: item.quantity,
+            amount: Number(item.lineTotal || 0)
+          })),
+          createdAt: o.finalizedAt || new Date().toISOString()
+        }));
+      })
+      .then((data: Order[]) => setOrders(data))
+      .catch((error: Error) => {
+        setMessage(error.message);
+        setOrders([]);
+      });
+  }, []);
+
+  if (selectedOrder) {
+    const currentIndex = stages.indexOf(selectedOrder.orderStatus);
+    const completedThrough = selectedOrder.orderStatus === "REJECTED" ? 2 : Math.max(0, currentIndex);
     return (
       <div className="tracking-result">
         <div className="tracking-title">
-          <span>{quote.quote_number}</span>
-          <h1>{quote.statusLabel}</h1>
-          <p>
-            Order request for {quote.customer_name}
-            {quote.business_name ? ` · ${quote.business_name}` : ""}
-          </p>
+          <span>ORDER #{selectedOrder.id}</span>
+          <h1>{stageLabels[selectedOrder.orderStatus]}</h1>
+          <p>Order request for {selectedOrder.name}{selectedOrder.businessName ? ` · ${selectedOrder.businessName}` : ""}</p>
         </div>
         <div className="timeline">
-          {orderStages.map((stage) => {
-            const event = quote.quote_status_events.find((item) => item.to_status === stage);
-            const active = completed.has(stage) || quote.status === stage;
+          {stages.map((stage, index) => {
+            const active = stage === "REJECTED"
+              ? selectedOrder.orderStatus === "REJECTED"
+              : selectedOrder.orderStatus !== "REJECTED" && index <= completedThrough;
             return (
               <div className={active ? "complete" : ""} key={stage}>
                 <i />
                 <span>
                   <strong>{stageLabels[stage]}</strong>
-                  <small>{event ? new Date(event.created_at).toLocaleString("en-IN") : "Pending"}</small>
+                  <small>{active && index === 0 ? new Date(selectedOrder.createdAt).toLocaleString("en-IN") : active ? "Current stage" : "Pending"}</small>
                 </span>
               </div>
             );
           })}
         </div>
         <div className="tracked-items">
-          {quote.quote_items.map((item) => (
-            <div key={item.flavour_name}>
-              <span>
-                {item.flavour_name} x {item.quantity}
-              </span>
-              <strong>{formatINR(item.line_total)}</strong>
+          {selectedOrder.orderItems.map((item) => (
+            <div key={item.id}>
+              <span>{item.productName} · {item.itemName} x {item.quantity}</span>
+              <strong>{formatINR(item.amount)}</strong>
             </div>
           ))}
-          {quote.discount_amount > 0 && (
-            <div>
-              <span>Discount</span>
-              <strong>-{formatINR(quote.discount_amount)}</strong>
-            </div>
-          )}
-          {quote.tax_amount > 0 && (
-            <div>
-              <span>Taxes</span>
-              <strong>{formatINR(quote.tax_amount)}</strong>
-            </div>
-          )}
-          {quote.additional_charges > 0 && (
-            <div>
-              <span>Additional charges</span>
-              <strong>{formatINR(quote.additional_charges)}</strong>
-            </div>
-          )}
-          {(quote.latest_invoice_number || quote.payment_status) && (
-            <div>
-              <span>Invoice</span>
-              <strong>
-                {quote.latest_invoice_number || `V${String(quote.invoice_version || 1).padStart(2, "0")}`}
-                {quote.payment_status ? ` · ${quote.payment_status}` : ""}
-              </strong>
-            </div>
-          )}
           <div className="summary-total">
             <span>Total</span>
-            <strong>{formatINR(quote.total)}</strong>
+            <strong>{formatINR(selectedOrder.finalAmount ?? selectedOrder.actualAmount)}</strong>
           </div>
         </div>
+        <button type="button" className="button ghost" style={{ marginTop: 16 }} onClick={() => setSelectedOrder(null)}>Back to orders</button>
       </div>
     );
   }
@@ -136,26 +124,29 @@ export default function TrackingForm({
   return (
     <div className="tracking-card">
       <span>PRIVATE ORDER TRACKING</span>
-      <h1>Track your request.</h1>
-      <p>Enter the quote number and email used for your request.</p>
-      <label>
-        Quote number
-        <input value={quoteNumber} onChange={(event) => setQuoteNumber(event.target.value)} placeholder="SS-260701-ABCDE" />
-      </label>
-      <label>
-        Email
-        <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-      </label>
-      {codeSent && (
-        <label>
-          6-digit verification code
-          <input inputMode="numeric" maxLength={6} value={code} onChange={(event) => setCode(event.target.value)} />
-        </label>
+      {orders?.length === 0 ? <>
+        <h1>No orders found.</h1>
+        <p>You haven&apos;t placed any orders.</p>
+        <a className="button ghost" href="/">Back to home</a>
+      </> : <>
+        <h1>Track your request.</h1>
+        <p>Showing orders for {session?.name || session?.email || "your account"}. Click an order to view its status.</p>
+        {orders === null && <p>Loading your orders…</p>}
+        {message && <p className="form-message">{message}</p>}
+      </>}
+      {orders && orders.length > 0 && (
+        <div className="user-orders-list">
+          {orders.map((order) => (
+            <button key={order.id} className="button ghost" style={{ display: "flex", justifyContent: "space-between", width: "100%", marginBottom: 8 }} onClick={() => setSelectedOrder(order)}>
+              <span>
+                <strong>ORDER #{order.id}</strong>
+                <div style={{ fontSize: 12, color: "#91aabd" }}>{order.name}{order.businessName ? ` · ${order.businessName}` : ""}</div>
+              </span>
+              <span style={{ alignSelf: "center" }}>{stageLabels[order.orderStatus]}</span>
+            </button>
+          ))}
+        </div>
       )}
-      {message && <p className="form-message">{message}</p>}
-      <button type="button" className="button primary" onClick={codeSent ? verifyCode : requestCode}>
-        {codeSent ? "Verify and Track" : "Send Verification Code"}
-      </button>
     </div>
   );
 }

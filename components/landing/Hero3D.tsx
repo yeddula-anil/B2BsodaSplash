@@ -1,6 +1,9 @@
+'use client';
 import dynamic from "next/dynamic";
 import HeroFallback from "./HeroFallback";
 import Image from "next/image";
+
+import AuthNav from "@/components/auth/AuthNav";
 
 // Load the Three.js canvas only on the client — never SSR
 const BottleCanvas = dynamic(() => import("./BottleCanvas"), {
@@ -27,7 +30,7 @@ export default function Hero3D() {
           <a href="/#process">How it works</a>
           <a href="/about">About Us</a>
         </div>
-        <a className="track-link" href="/track">Track Order</a>
+        <AuthNav />
       </nav>
 
       {/* Hero layout grid */}

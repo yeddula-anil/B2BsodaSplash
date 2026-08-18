@@ -5,6 +5,8 @@ do $$ begin
 exception when duplicate_object then null;
 end $$;
 
+alter type app_role add value if not exists 'customer';
+
 do $$ begin
   create type quote_status as enum (
     'submitted',
@@ -23,7 +25,7 @@ create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,
   full_name text,
-  role app_role not null default 'bd',
+  role app_role not null default 'customer',
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );

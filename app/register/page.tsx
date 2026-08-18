@@ -1,16 +1,16 @@
-import CustomerLoginForm from "@/components/auth/CustomerLoginForm";
+import CustomerRegisterForm from "@/components/auth/CustomerRegisterForm";
 import Image from "next/image";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Login",
-  description: "Sign in to your SodaSplash account.",
+  title: "Create Account",
+  description: "Create your SodaSplash wholesale account.",
   alternates: {
-    canonical: "/login",
+    canonical: "/register",
   }
 };
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <main className="portal-page">
       <header className="portal-nav">
@@ -26,7 +26,7 @@ export default function LoginPage() {
         <a href="/">Public website</a>
       </header>
       <section className="login-page">
-        <CustomerLoginForm />
+        <CustomerRegisterForm />
       </section>
     </main>
   );
