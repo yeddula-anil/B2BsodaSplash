@@ -117,7 +117,7 @@ export default function QuoteRequestForm({
   } | null>(null);
 
   const ORDERS_API_BASE =
-    process.env.NEXT_API_GATEWAY_URL ||
+    process.env.NEXT_PUBLIC_GATEWAY_URL ||
     "http://localhost:8080";
 
   // Customer login

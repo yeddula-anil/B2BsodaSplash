@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 
 const AUTH_SERVICE_URL =
-  process.env.NEXT_API_GATEWAY_URL || "http://localhost:8080";
+  process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8080";
 
 const PRODUCT_SERVICE_URL =
-  process.env.NEXT_API_GATEWAY_URL || "http://localhost:8080";
+  process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8080";
 
 const ORDER_SERVICE_URL =
-  process.env.NEXT_API_GATEWAY_URL || "http://localhost:8080";
+  process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8080";
 
 function getAuthorization(request: Request) {
   return request.headers.get("authorization") || "";

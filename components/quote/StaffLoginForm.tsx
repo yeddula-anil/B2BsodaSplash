@@ -13,7 +13,7 @@ export default function StaffLoginForm() {
     setMessage("");
 
     try {
-      const authApiBase = process.env.NEXT_API_GATEWAY_URL || "http://localhost:8080";
+      const authApiBase = process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8080";
       const response = await fetch(
         `${authApiBase}/api/auth/login`,
         {

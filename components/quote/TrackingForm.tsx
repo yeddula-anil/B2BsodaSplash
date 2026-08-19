@@ -44,7 +44,7 @@ export default function TrackingForm() {
     setSession(currentSession);
     if (!currentSession?.email) return;
 
-    const ordersApiBase = process.env.NEXT_API_GATEWAY_URL || "http://localhost:8080";
+    const ordersApiBase = process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8080";
     const email = currentSession.email;
 
     fetch(`${ordersApiBase}/api/orders/by-email?email=${encodeURIComponent(email)}`, {
