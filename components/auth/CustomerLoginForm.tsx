@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 
 const API_GATEWAY_URL =
-  process.env.NEXT_PUBLIC_API_GATEWAY_URL ||
-  "http://localhost:8080/api";
+  process.env.NEXT_API_GATEWAY_URL ||
+  "http://localhost:8080";
 
 export default function CustomerLoginForm() {
   const [email, setEmail] = useState("");
@@ -48,7 +48,7 @@ export default function CustomerLoginForm() {
     }
 
     try {
-      const response = await fetch(`${API_GATEWAY_URL}/auth/login`, {
+      const response = await fetch(`${API_GATEWAY_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -195,7 +195,7 @@ export default function CustomerLoginForm() {
     setMessage("");
 
     const googleLoginUrl =
-      `${API_GATEWAY_URL}/auth/google`;
+      `${API_GATEWAY_URL}/api/auth/google`;
 
     console.log(
       "Redirecting to Google login:",

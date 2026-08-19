@@ -3,8 +3,8 @@
 import { useState } from "react";
 
 const API_GATEWAY_URL =
-  process.env.NEXT_PUBLIC_API_GATEWAY_URL ||
-  "http://localhost:8080/api";
+  process.env.NEXT_API_GATEWAY_URL ||
+  "http://localhost:8080";
 
 export default function CustomerRegisterForm() {
   const [name, setName] = useState("");
@@ -49,7 +49,7 @@ export default function CustomerRegisterForm() {
       // ---------------------------------------------------
 
       const response = await fetch(
-        `${API_GATEWAY_URL}/auth/register`,
+        `${API_GATEWAY_URL}/api/auth/register`,
         {
           method: "POST",
           headers: {
@@ -217,7 +217,7 @@ export default function CustomerRegisterForm() {
     setMessage("");
 
     const googleRegisterUrl =
-      `${API_GATEWAY_URL}/auth/google`;
+      `${API_GATEWAY_URL}/api/auth/google`;
 
     console.log(
       "Redirecting to Google registration:",

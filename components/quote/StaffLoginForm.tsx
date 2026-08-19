@@ -13,9 +13,9 @@ export default function StaffLoginForm() {
     setMessage("");
 
     try {
-      const authApiBase = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || "http://localhost:8080/api";
+      const authApiBase = process.env.NEXT_API_GATEWAY_URL || "http://localhost:8080";
       const response = await fetch(
-        `${authApiBase}/auth/login`,
+        `${authApiBase}/api/auth/login`,
         {
           method: "POST",
           headers: {

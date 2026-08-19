@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 const GATEWAY_URL =
-  process.env.GATEWAY_URL || "http://localhost:8080";
+  process.env.NEXT_API_GATEWAY_URL || "http://localhost:8080";
 
 export async function GET(request: Request) {
   try {

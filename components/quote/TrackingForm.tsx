@@ -44,10 +44,10 @@ export default function TrackingForm() {
     setSession(currentSession);
     if (!currentSession?.email) return;
 
-    const ordersApiBase = process.env.NEXT_PUBLIC_ORDER_SERVICE_URL || "http://localhost:8080/api";
+    const ordersApiBase = process.env.NEXT_API_GATEWAY_URL || "http://localhost:8080";
     const email = currentSession.email;
 
-    fetch(`${ordersApiBase}/orders/by-email?email=${encodeURIComponent(email)}`, {
+    fetch(`${ordersApiBase}/api/orders/by-email?email=${encodeURIComponent(email)}`, {
       headers: currentSession.token ? { Authorization: `Bearer ${currentSession.token}` } : {}
     })
       .then(async (response) => {

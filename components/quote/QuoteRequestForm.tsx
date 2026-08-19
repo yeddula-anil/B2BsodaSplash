@@ -117,8 +117,8 @@ export default function QuoteRequestForm({
   } | null>(null);
 
   const ORDERS_API_BASE =
-    process.env.NEXT_PUBLIC_API_GATEWAY_URL ||
-    "http://localhost:8080/api";
+    process.env.NEXT_API_GATEWAY_URL ||
+    "http://localhost:8080";
 
   // Customer login
   useEffect(() => {
@@ -554,7 +554,7 @@ export default function QuoteRequestForm({
 
     console.log(
       "REQUEST URL:",
-      `${ORDERS_API_BASE}/orders`
+      `${ORDERS_API_BASE}/api/orders`
     );
 
     console.log(
@@ -577,7 +577,7 @@ export default function QuoteRequestForm({
     try {
       const response =
         await fetch(
-          `${ORDERS_API_BASE}/orders`,
+          `${ORDERS_API_BASE}/api/orders`,
           {
             method: "POST",
 

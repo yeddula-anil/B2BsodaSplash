@@ -127,8 +127,8 @@ export default function OrderEditor({
     useState(false);
 
   const ORDERS_API_BASE =
-    process.env.NEXT_PUBLIC_ORDER_SERVICE_URL ||
-    "http://localhost:8080/api";
+    process.env.NEXT_API_GATEWAY_URL ||
+    "http://localhost:8080";
 
   /* =====================================================
      GET TOKEN
@@ -185,7 +185,7 @@ export default function OrderEditor({
     orderKey,
     async ([, currentQuoteNumber, accessToken]) => {
       const response = await fetch(
-        `${ORDERS_API_BASE}/orders/${encodeURIComponent(
+        `${ORDERS_API_BASE}/api/orders/${encodeURIComponent(
           String(currentQuoteNumber)
         )}`,
         {
@@ -586,7 +586,7 @@ export default function OrderEditor({
     try {
       const response =
         await fetch(
-          `${ORDERS_API_BASE}/orders/${encodeURIComponent(
+          `${ORDERS_API_BASE}/api/orders/${encodeURIComponent(
             data.quote.id
           )}`,
           {
@@ -703,7 +703,7 @@ export default function OrderEditor({
         nextStatus === "cancelled";
 
       const url = isCancel
-        ? `${ORDERS_API_BASE}/orders/${encodeURIComponent(
+        ? `${ORDERS_API_BASE}/api/orders/${encodeURIComponent(
             data.quote.id
           )}/cancel`
         : `${ORDERS_API_BASE}/orders/${encodeURIComponent(
